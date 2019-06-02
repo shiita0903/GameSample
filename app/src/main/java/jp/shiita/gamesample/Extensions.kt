@@ -13,3 +13,10 @@ fun FragmentManager.replace(@IdRes id: Int, fragment: Fragment, tag: String? = n
         .replace(id, fragment)
         .addToBackStack(tag)
         .commit()
+
+fun <T, R> List<T>.scanL(initial: R, operation: (R, T) -> R): List<R> =
+    scanL(listOf(initial), operation)
+
+private tailrec fun <T, R> List<T>.scanL(scanned: List<R>, operation: (R, T) -> R): List<R> =
+    if (isEmpty()) scanned
+    else drop(1).scanL(scanned + listOf(operation(scanned.last(), first())), operation)

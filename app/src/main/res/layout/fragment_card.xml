@@ -8,46 +8,98 @@
     tools:context=".CardFragment">
 
     <ImageView
-        android:id="@+id/card1"
+        android:id="@+id/card_front1"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_margin="20dp"
         android:src="@drawable/card_back"
-        app:layout_constraintBottom_toTopOf="@+id/card3"
-        app:layout_constraintEnd_toStartOf="@+id/card2"
+        android:tint="#ffffff"
+        android:alpha="0"
+        app:layout_constraintBottom_toTopOf="@+id/card_front3"
+        app:layout_constraintEnd_toStartOf="@+id/card_front2"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
-        android:id="@+id/card2"
+        android:id="@+id/card_front2"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_margin="20dp"
         android:src="@drawable/card_back"
-        app:layout_constraintBottom_toTopOf="@+id/card4"
+        android:tint="#ffffff"
+        android:alpha="0"
+        app:layout_constraintBottom_toTopOf="@+id/card_front4"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/card1"
+        app:layout_constraintStart_toEndOf="@+id/card_front1"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
-        android:id="@+id/card3"
+        android:id="@+id/card_front3"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="20dp"
+        android:src="@drawable/card_back"
+        android:tint="#ffffff"
+        android:alpha="0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/card_front4"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/card_front1" />
+
+    <ImageView
+        android:id="@+id/card_front4"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="20dp"
+        android:src="@drawable/card_back"
+        android:tint="#ffffff"
+        android:alpha="0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/card_front3"
+        app:layout_constraintTop_toBottomOf="@+id/card_front2" />
+
+    <ImageView
+        android:id="@+id/card_back1"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="20dp"
+        android:src="@drawable/card_back"
+        app:layout_constraintBottom_toTopOf="@+id/card_back3"
+        app:layout_constraintEnd_toStartOf="@+id/card_back2"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/card_back2"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="20dp"
+        android:src="@drawable/card_back"
+        app:layout_constraintBottom_toTopOf="@+id/card_back4"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/card_back1"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/card_back3"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_margin="20dp"
         android:src="@drawable/card_back"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/card4"
+        app:layout_constraintEnd_toStartOf="@+id/card_back4"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/card1" />
+        app:layout_constraintTop_toBottomOf="@+id/card_back1" />
 
     <ImageView
-        android:id="@+id/card4"
+        android:id="@+id/card_back4"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_margin="20dp"
         android:src="@drawable/card_back"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/card3"
-        app:layout_constraintTop_toBottomOf="@+id/card2" />
+        app:layout_constraintStart_toEndOf="@+id/card_back3"
+        app:layout_constraintTop_toBottomOf="@+id/card_back2" />
 </android.support.constraint.ConstraintLayout>

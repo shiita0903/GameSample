@@ -31,9 +31,12 @@ class AmidaView : View {
         }
 
         // 横線
-        val lineCounts = (0 until VERTICAL_LINE_COUNT - 1).map { Random.nextInt(2, 5) }
+        val lineCounts = (0 until VERTICAL_LINE_COUNT - 1).map { Random.nextInt(3, 5) }
             .scanL(0, Int::plus)
         val ys = (0 until lineCounts.last()).map { Random.nextFloat() }
+            .sorted()
+            .mapIndexed { i, v -> (v + i.toFloat() / (2 * lineCounts.last())) / 1.5f }  // 横線間の隙間をある程度保証
+            .shuffled()
 
         (0 until VERTICAL_LINE_COUNT - 1).forEach { i ->
             val x0 = w * i / (VERTICAL_LINE_COUNT - 1) + LINE_WIDTH / 2

@@ -6,7 +6,9 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.support.v4.content.res.ResourcesCompat
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
+import kotlin.math.abs
 import kotlin.random.Random
 
 class AmidaView @JvmOverloads constructor(
@@ -19,24 +21,16 @@ class AmidaView @JvmOverloads constructor(
         ResourcesCompat.getDrawable(resources, R.drawable.ic_pin_red, null)!!.getBitmap()
     private val lineLists: List<MutableList<LineInfo>> =
         List(VERTICAL_LINE_COUNT) { mutableListOf<LineInfo>() }
-    private var points: List<Pair<Float, Float>>? = null
+    private lateinit var points: List<Pair<Float, Float>>
+    private lateinit var traceCumulativeSum: List<Float>
 
-    var positionX: Float = 0f
-        set(value) {
-            field = value
-            invalidate()
-        }
-    var positionY: Float = 0f
+    var progress: Float = 0f
         set(value) {
             field = value
             invalidate()
         }
 
     init {
-        if (attrs != null) {
-
-        }
-
         val lineCounts = (0 until VERTICAL_LINE_COUNT - 1).map { Random.nextInt(3, 5) }
             .scanL(0, Int::plus)
 
@@ -63,16 +57,42 @@ class AmidaView @JvmOverloads constructor(
         drawHorizontalLine(canvas, w, h)
         drawIntersection(canvas, w, h)
         drawPin(canvas)
-        // TODO: test
-        paint.color = Color.YELLOW
-        points?.zipWithNext { p0, p1 ->
-            canvas.drawLine(p0.first, p0.second, p1.first, p1.second, paint)
-        }
     }
 
-    fun drawLine(lineNumber: Int) {
-        points = getPoints(lineNumber)
-        invalidate()
+    fun calcPoints(lineNumber: Int): Float {
+        val w = width
+        val h = height - VERTICAL_LINE_MARGIN
+        var n = lineNumber
+        var yr = 0f
+
+        points = mutableListOf<Pair<Float, Float>>().apply {
+            add(calcX(w, n) to 0f)  // marginを考慮しない
+
+            while (yr < lineLists[n].last().y) {
+                val info = lineLists[n].map(LineInfo::y)
+                    .binarySearch(yr)
+                    .let {
+                        val i = if (it < 0) it.inv() else it    // binarySearchをlowerBoundとして利用
+                        lineLists[n][i]
+                    }
+
+                val y = calcY(h, info.y)
+                add(calcX(w, n) to y)
+
+                if (info.toRight) n++ else n--  // 右か左にずらす
+                add(calcX(w, n) to y)
+
+                yr = info.y + 1e-5f     // 次のlowerBoundを求めるために、微小な数を追加する
+            }
+
+            add(calcX(w, n) to height.toFloat())    // marginを考慮しない
+        }
+
+        traceCumulativeSum = points.zipWithNext { p0, p1 ->
+            abs(p0.first - p1.first) + abs(p0.second - p1.second)
+        }.scanL(0f, Float::plus)
+
+        return traceCumulativeSum.last()
     }
 
     private fun drawVerticalLine(canvas: Canvas, w: Int) {
@@ -112,10 +132,13 @@ class AmidaView @JvmOverloads constructor(
     }
 
     private fun drawPin(canvas: Canvas) {
+        if (progress == 0f) return
+
+        val (x, y) = getPinPosition()
         canvas.drawBitmap(
             pinBitmap,
-            positionX * width - pinBitmap.width / 2,
-            positionY * height - pinBitmap.height,
+            x - pinBitmap.width / 2,
+            y - pinBitmap.height,
             paint
         )
     }
@@ -126,33 +149,22 @@ class AmidaView @JvmOverloads constructor(
     private fun calcY(h: Int, yr: Float): Float =
         h * yr + VERTICAL_LINE_MARGIN / 2
 
-    private fun getPoints(lineNumber: Int): List<Pair<Float, Float>> {
-        val w = width
-        val h = height - VERTICAL_LINE_MARGIN
-        var n = lineNumber
-        var yr = 0f
+    private fun getPinPosition(): Pair<Float, Float> {
+        val l = traceCumulativeSum.last() * progress
+        val i = traceCumulativeSum.binarySearch(l)
+        val index = if (i < 0) i.inv() - 1 else i - 1
 
-        return mutableListOf<Pair<Float, Float>>().apply {
-            add(calcX(w, n) to 0f)  // marginを考慮しない
+        val restL = l - traceCumulativeSum[index]
+        val (p0, p1) = points[index] to points[index + 1]
+        Log.d("getPinPosition", "index = $i, l = $l, $p0, $p1, $restL")
 
-            while (yr < lineLists[n].last().y) {
-                val info = lineLists[n].map(LineInfo::y)
-                    .binarySearch(yr)
-                    .let {
-                        val i = if (it < 0) it.inv() else it    // binarySearchをlowerBoundとして利用
-                        lineLists[n][i]
-                    }
-
-                val y = calcY(h, info.y)
-                add(calcX(w, n) to y)
-
-                if (info.toRight) n++ else n--  // 右か左にずらす
-                add(calcX(w, n) to y)
-
-                yr = info.y + 1e-5f     // 次のlowerBoundを求めるために、微小な数を追加する
-            }
-
-            add(calcX(w, n) to height.toFloat())    // marginを考慮しない
+        return if (p0.first == p1.first) {
+            // 縦線
+            p0.first to p0.second + restL
+        } else {
+            // 横線
+            val x = if (p0.first < p1.first) p0.first + restL else p0.first - restL
+            x to p0.second
         }
     }
 

@@ -9,27 +9,70 @@ import android.util.AttributeSet
 import android.view.View
 import kotlin.random.Random
 
-class AmidaView : View {
+class AmidaView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
+) : View(context, attrs, defStyleAttr) {
     private val paint = Paint()
-    val pointsList: List<MutableList<Float>> = List(VERTICAL_LINE_COUNT) { mutableListOf<Float>() }
+    private val pinBitmap =
+        ResourcesCompat.getDrawable(resources, R.drawable.ic_pin_red, null)!!.getBitmap()
+    private val lineLists: List<MutableList<LineInfo>> =
+        List(VERTICAL_LINE_COUNT) { mutableListOf<LineInfo>() }
+    private var points: List<Pair<Float, Float>>? = null
 
-    constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : super(
-        context,
-        attrs,
-        defStyleAttr
-    )
+    var positionX: Float = 0f
+        set(value) {
+            field = value
+            invalidate()
+        }
+    var positionY: Float = 0f
+        set(value) {
+            field = value
+            invalidate()
+        }
 
-    constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
+    init {
+        if (attrs != null) {
 
-    constructor(context: Context) : super(context)
+        }
+
+        val lineCounts = (0 until VERTICAL_LINE_COUNT - 1).map { Random.nextInt(3, 5) }
+            .scanL(0, Int::plus)
+
+        val ys = (0 until lineCounts.last()).map { Random.nextFloat() }
+            .sorted()
+            .mapIndexed { i, v -> (v + i.toFloat() / (2 * lineCounts.last())) / 1.5f }  // 横線間の隙間をある程度保証
+            .shuffled()
+
+        (0 until VERTICAL_LINE_COUNT - 1).forEach { i ->
+            (lineCounts[i] until lineCounts[i + 1]).map { ys[it] }
+                .forEach { y ->
+                    lineLists[i].add(LineInfo(y, true))
+                    lineLists[i + 1].add(LineInfo(y, false))
+                }
+        }
+        lineLists.forEach { it.sortBy(LineInfo::y) }
+    }
 
     override fun onDraw(canvas: Canvas) {
-        val w = width - VERTICAL_LINE_WIDTH
+        val w = width
         val h = height - VERTICAL_LINE_MARGIN
 
         drawVerticalLine(canvas, w)
-        drawHorizontalLineAndUpdatePoints(canvas, w, h)
-        drawIntersection(canvas, w)
+        drawHorizontalLine(canvas, w, h)
+        drawIntersection(canvas, w, h)
+        drawPin(canvas)
+        // TODO: test
+        paint.color = Color.YELLOW
+        points?.zipWithNext { p0, p1 ->
+            canvas.drawLine(p0.first, p0.second, p1.first, p1.second, paint)
+        }
+    }
+
+    fun drawLine(lineNumber: Int) {
+        points = getPoints(lineNumber)
+        invalidate()
     }
 
     private fun drawVerticalLine(canvas: Canvas, w: Int) {
@@ -42,45 +85,78 @@ class AmidaView : View {
         }
     }
 
-    private fun drawHorizontalLineAndUpdatePoints(canvas: Canvas, w: Int, h: Int) {
+    private fun drawHorizontalLine(canvas: Canvas, w: Int, h: Int) {
         paint.strokeWidth = HORIZONTAL_LINE_WIDTH.toFloat()
         paint.color = Color.BLACK
-
-        pointsList.forEach { it.clear() }
-        val lineCounts = (0 until VERTICAL_LINE_COUNT - 1).map { Random.nextInt(3, 5) }
-            .scanL(0, Int::plus)
-        val ys = (0 until lineCounts.last()).map { Random.nextFloat() }
-            .sorted()
-            .mapIndexed { i, v -> (v + i.toFloat() / (2 * lineCounts.last())) / 1.5f }  // 横線間の隙間をある程度保証
-            .shuffled()
 
         (0 until VERTICAL_LINE_COUNT - 1).forEach { i ->
             val x0 = calcX(w, i)
             val x1 = calcX(w, i + 1)
 
-            (lineCounts[i] until lineCounts[i + 1]).map { h * ys[it] + VERTICAL_LINE_MARGIN / 2 }
-                .forEach { y ->
-                    canvas.drawLine(x0, y, x1, y, paint)
-                    pointsList[i].add(y)
-                    pointsList[i + 1].add(y)
-                }
+            lineLists[i].filter { it.toRight }
+                .map { h * it.y + VERTICAL_LINE_MARGIN / 2 }
+                .forEach { y -> canvas.drawLine(x0, y, x1, y, paint) }
         }
-        pointsList.forEach { it.sort() }
     }
 
-    private fun drawIntersection(canvas: Canvas, w: Int) {
+    private fun drawIntersection(canvas: Canvas, w: Int, h: Int) {
         paint.color = ResourcesCompat.getColor(resources, R.color.colorPrimary, null)
 
         (0 until VERTICAL_LINE_COUNT).forEach { i ->
             val x = calcX(w, i)
-            pointsList[i].forEach { y ->
-                canvas.drawCircle(x, y, INTERSECTION_RADIUS.toFloat(), paint)
-            }
+            lineLists[i].map { calcY(h, it.y) }
+                .forEach { y ->
+                    canvas.drawCircle(x, y, INTERSECTION_RADIUS.toFloat(), paint)
+                }
         }
     }
 
+    private fun drawPin(canvas: Canvas) {
+        canvas.drawBitmap(
+            pinBitmap,
+            positionX * width - pinBitmap.width / 2,
+            positionY * height - pinBitmap.height,
+            paint
+        )
+    }
+
     private fun calcX(w: Int, index: Int): Float =
-        w.toFloat() * index / (VERTICAL_LINE_COUNT - 1) + VERTICAL_LINE_WIDTH / 2
+        w.toFloat() * index / (VERTICAL_LINE_COUNT - 1)
+
+    private fun calcY(h: Int, yr: Float): Float =
+        h * yr + VERTICAL_LINE_MARGIN / 2
+
+    private fun getPoints(lineNumber: Int): List<Pair<Float, Float>> {
+        val w = width
+        val h = height - VERTICAL_LINE_MARGIN
+        var n = lineNumber
+        var yr = 0f
+
+        return mutableListOf<Pair<Float, Float>>().apply {
+            add(calcX(w, n) to 0f)  // marginを考慮しない
+
+            while (yr < lineLists[n].last().y) {
+                val info = lineLists[n].map(LineInfo::y)
+                    .binarySearch(yr)
+                    .let {
+                        val i = if (it < 0) it.inv() else it    // binarySearchをlowerBoundとして利用
+                        lineLists[n][i]
+                    }
+
+                val y = calcY(h, info.y)
+                add(calcX(w, n) to y)
+
+                if (info.toRight) n++ else n--  // 右か左にずらす
+                add(calcX(w, n) to y)
+
+                yr = info.y + 1e-5f     // 次のlowerBoundを求めるために、微小な数を追加する
+            }
+
+            add(calcX(w, n) to height.toFloat())    // marginを考慮しない
+        }
+    }
+
+    data class LineInfo(val y: Float, val toRight: Boolean)
 
     companion object {
         private const val HORIZONTAL_LINE_WIDTH = 8

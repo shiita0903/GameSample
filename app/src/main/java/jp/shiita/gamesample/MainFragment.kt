@@ -26,6 +26,7 @@ class MainFragment : Fragment() {
             fragmentManager?.replace(R.id.mainContainer, AmidaFragment.newInstance())
         }
         lotteryGameButton.setOnClickListener {
+            fragmentManager?.replace(R.id.mainContainer, LotteryFragment.newInstance())
         }
     }
 
